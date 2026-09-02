@@ -1,0 +1,10 @@
+.env
+data/
+__pycache__/
+*.pyc
+storage_state.json
+venv/
+.venv/
+*.age-key.txt
+age-key.txt
+.idea/

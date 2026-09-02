@@ -1,0 +1,36 @@
+# Critères de recherche pour alin-monitor.
+# "villes", "types_logement" etc. servent de FILTRES DURS (une offre qui ne
+# correspond pas est écartée, quel que soit son score).
+# La section "scoring" définit la pondération utilisée pour classer les
+# offres qui passent les filtres durs.
+#
+# CONFIGURATION ACTUELLE : aucun filtre. AL'in ne montre déjà que les offres
+# auxquelles le profil (demande de logement social) est éligible — inutile
+# de sur-filtrer par-dessus. score_threshold à 0 : toute nouvelle offre
+# active détectée déclenche une notification, quel que soit son score.
+
+villes: []  # vide = pas de filtre ville
+
+quartiers: []  # optionnel, laisser vide pour ne pas filtrer par quartier
+
+types_logement: []  # vide = pas de filtre type de logement
+
+loyer_max: 999999  # pas de plafond de loyer effectif
+surface_min: 0
+nb_chambres_min: null
+charges_max: null
+
+disponibilite_avant: null  # ex: "2026-12-31", optionnel
+etage_max: null            # optionnel
+ascenseur_requis: false
+parking_requis: false
+balcon_requis: false
+
+scoring:
+  poids:
+    ville_correspondante: 30
+    loyer_sous_seuil: 25
+    type_correspondant: 20
+    surface_superieure: 15
+    disponibilite_interessante: 10
+  score_threshold: 0

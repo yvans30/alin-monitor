@@ -1,0 +1,42 @@
+info:
+  name: HouseOffers
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://api.al-in.fr/api/dmo/housing_offers?publication_end_date%5B$gte%5D=2026-12-10&date_publication_start%5B$lte%5D=2026-01-01
+  params:
+    - name: per_page
+      value: "10"
+      type: query
+      disabled: true
+    - name: page
+      value: "1"
+      type: query
+      disabled: true
+    - name: sort%5Brent_with_charges%5D
+      value: "1"
+      type: query
+      disabled: true
+    - name: publication_end_date%5B$gte%5D
+      value: 2026-12-10
+      type: query
+    - name: date_publication_start%5B$lte%5D
+      value: 2026-01-01
+      type: query
+  auth:
+    type: oauth2
+    flow: client_credentials
+    credentials:
+      placement: body
+    tokenConfig:
+      id: credentials
+      placement:
+        header: Bearer
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
