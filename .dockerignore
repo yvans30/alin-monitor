@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.enc
+.git/
+data/
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.age-key.txt
+age-key.txt

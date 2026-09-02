@@ -1,20 +1,23 @@
-# Image officielle Playwright : navigateurs + dépendances système déjà installés,
-# ce qui évite de gérer manuellement les libs nécessaires à Chromium sous Debian slim.
 FROM mcr.microsoft.com/playwright/python:v1.45.0-jammy
 
 WORKDIR /app
+
+# Outils nécessaires au déchiffrement des secrets
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends age curl \
+    && curl -fsSL https://github.com/getsops/sops/releases/download/v3.13.3/sops-v3.13.3.linux.amd64 \
+       -o /usr/local/bin/sops \
+    && chmod +x /usr/local/bin/sops \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./app/
 COPY config/ ./config/
+COPY .env.enc ./
+COPY scripts/run.sh ./scripts/run.sh
 
-# IMPORTANT : le premier lancement nécessite une authentification manuelle
-# (email + mot de passe + éventuelle MFA) dans un navigateur visible. Ce
-# n'est pas possible directement dans ce conteneur sans accès graphique
-# (X11/VNC). Voir le README, section "Première authentification", pour la
-# procédure recommandée (lancer en local hors Docker la première fois, puis
-# copier data/storage_state.json avant de démarrer via Docker).
+RUN chmod +x ./scripts/run.sh
 
-CMD ["python", "-m", "app.main"]
+CMD ["./scripts/run.sh"]

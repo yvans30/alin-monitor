@@ -3,8 +3,17 @@ services:
     build: .
     container_name: alin-monitor
     restart: unless-stopped
-    env_file:
-      - .env
+
+    environment:
+      SOPS_AGE_KEY_FILE: /run/secrets/age-key
+
     volumes:
       - ./data:/app/data
       - ./config:/app/config
+
+    secrets:
+      - age-key
+
+secrets:
+  age-key:
+    file: ${SOPS_AGE_KEY_FILE}
