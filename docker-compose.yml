@@ -16,4 +16,4 @@ services:
 
 secrets:
   age-key:
-    file: ${SOPS_AGE_KEY_FILE}
+    file: ${AGE_KEY_FILE}
