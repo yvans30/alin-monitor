@@ -15,7 +15,7 @@ restent entièrement manuelles, faites par vous, sur le site officiel.
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-playwright install chromium
+playwright install --with-deps chromium  # local uniquement, cf. Fallback ci-dessous
 ```
 
 ## Configuration
@@ -35,27 +35,66 @@ playwright install chromium
 
 ## Architecture
 
-En fonctionnement normal, alin-monitor ne pilote **aucun navigateur** : il
+alin-monitor est un harnais **multi-source** : chaque site surveillé vit
+dans son propre paquet `app/sources/<nom_source>/`, avec la même forme
+(`auth.py`, `scraper.py`, `parser.py`, éventuellement `browser.py` pour un
+fallback manuel). `app/sources/base.py` définit le contrat commun (`Source`,
+`SourceClient`) utilisé par `app/main.py` pour boucler sur les sources
+actives (`enabled: true` dans `config/criteria.yaml`, cf. section
+[Configuration](#configuration)), et centralise le rappel éthique valable
+pour toute source ajoutée au projet.
+
+Seule `app/sources/alin/` est aujourd'hui implémentée. En fonctionnement
+normal, alin-monitor ne pilote **aucun navigateur** pour cette source : il
 parle directement à l'API AL'in en HTTP (via `httpx`, async) :
 
-1. `app/alin/auth.py` (`AlinAuthClient`) s'authentifie par
+1. `app/sources/alin/auth.py` (`AlinAuthClient`) s'authentifie par
    POST sur l'endpoint Keycloak "direct grant" d'AL'in
    (`https://api.be-ys.com/als-back/v1/accounts/authenticate`) avec l'email
    et le mot de passe, et obtient un `access_token` (valide ~900s). Le
    token est ré-authentifié proactivement (rejeu du même POST) avant
    expiration, avec une marge de sécurité — aucun endpoint de "refresh"
    distinct n'a été identifié dans le trafic observé.
-2. `app/alin/scraper.py` (`fetch_active_offers`) interroge
+2. `app/sources/alin/scraper.py` (`fetch_active_offers`) interroge
    `GET https://api.al-in.fr/api/dmo/housing_offers`, paginé, filtré sur la
    fenêtre de publication courante.
-3. `app/alin/parser.py` (`parse_offer`) transforme chaque offre brute en
-   objet `Offer` (app/database/models.py), avec extraction défensive
-   (JSON:API `attributes` ou format plat en repli).
+3. `app/sources/alin/parser.py` (`parse_offer`) transforme chaque offre
+   brute en objet `Offer` (app/database/models.py), avec extraction
+   défensive (JSON:API `attributes` ou format plat en repli).
 4. `app/filters/criteria.py` et `app/filters/scoring.py` filtrent/scorent
-   les offres selon `config/criteria.yaml`.
+   les offres selon `config/criteria.yaml` (critères communs, avec overrides
+   optionnels par source).
 5. Les nouvelles offres au-dessus du seuil de score sont notifiées via
    Telegram (`app/notifications/telegram.py`), et persistées en SQLite
-   (`app/database/db.py`).
+   (`app/database/db.py`), avec la source d'origine (clé composite
+   `(source, id)` : deux sources peuvent réutiliser le même identifiant
+   externe sans collision).
+
+### `app/sources/logement_actionlogement/` — stub, non implémenté
+
+Un second site du groupe Action Logement
+(`logement-actionlogement.fr`) est prévu dans le même outil (même bot
+Telegram, même base SQLite), mais sa structure technique réelle (auth,
+format des offres, URL de fiche) **n'est pas connue**. Comme fait pour AL'in
+à l'origine, elle doit être découverte par observation légitime du trafic
+réseau de l'utilisateur sur son propre compte — jamais par invention
+d'endpoint. En attendant cette découverte, `app/sources/logement_actionlogement/`
+reste un stub : chaque fonction lève `NotImplementedError`, et la source
+reste `enabled: false` dans `config/criteria.yaml`.
+
+**Checklist pour ajouter/activer une nouvelle source** :
+
+1. Lire les CGU du site (veille automatisée acceptable ou non, comme fait
+   pour AL'in).
+2. Observer légitimement son trafic réseau (onglet Network du navigateur,
+   connecté à son propre compte) pour identifier auth, endpoint liste des
+   offres, et structure d'une offre.
+3. Remplir les stubs `auth.py`/`scraper.py`/`parser.py` du paquet
+   `app/sources/<nom_source>/` sur le modèle de `app/sources/alin/`.
+4. Ajouter des critères par défaut dans `config/criteria.yaml` si
+   nécessaire, et passer la source à `enabled: true`.
+5. Valider avec des tests unitaires du parser (sur le modèle de
+   `tests/test_parser.py`) avant tout déploiement.
 
 **Provenance de la structure de l'API** : cette structure (endpoints,
 en-têtes, forme des réponses) a été identifiée par observation légitime du
@@ -105,13 +144,13 @@ risque :
   d'exposition de ce fichier.
 
 L'email et le mot de passe sont envoyés directement à l'API AL'in
-(`app/alin/auth.py`, flow httpx). Aucune étape MFA/OTP n'a été observée sur
+(`app/sources/alin/auth.py`, flow httpx). Aucune étape MFA/OTP n'a été observée sur
 ce flow à ce jour (c'est un flow Keycloak "direct grant" simple). Si l'API
 se met à refuser l'authentification de façon inattendue (statut 4xx), le
 programme ne tente **jamais** de deviner ou contourner quoi que ce soit :
 après plusieurs tentatives infructueuses, il logge clairement l'échec,
 envoie une alerte Telegram, puis bascule vers un fallback Playwright
-(`app/alin/browser.py`) qui ouvre un navigateur visible et attend une
+(`app/sources/alin/browser.py`) qui ouvre un navigateur visible et attend une
 intervention manuelle complète de votre part (y compris une éventuelle
 MFA/CAPTCHA).
 
@@ -175,11 +214,12 @@ précédente) reste supporté et suffisant pour un usage strictement local.
 docker compose up -d --build
 ```
 
-Le conteneur n'a pas d'accès graphique : le fallback Playwright manuel
-(déclenché seulement en cas d'échec répété de l'authentification httpx)
-nécessite un accès graphique et doit donc être exécuté temporairement en
-local (`python -m app.main`, playwright installé) si jamais il est
-déclenché, avant de redémarrer le conteneur Docker.
+Le conteneur n'a pas d'affichage graphique : Chromium n'y est pas installé,
+et `ENABLE_MANUAL_FALLBACK=false` (forcé par le Dockerfile) désactive le
+fallback Playwright. En cas d'échec d'authentification répété, une alerte
+Telegram vous demande d'investiguer en local (`ENABLE_MANUAL_FALLBACK=true`
+par défaut sur votre poste, `playwright install --with-deps chromium`
+requis).
 
 ## Tests
 
@@ -201,7 +241,7 @@ restent à lever à l'usage réel :
 - le filtre "quartier", nécessairement best-effort en l'absence de champ
   dédié côté API.
 
-Le fallback Playwright (`app/alin/browser.py`) reste un squelette partiel
+Le fallback Playwright (`app/sources/alin/browser.py`) reste un squelette partiel
 (sélecteurs de détection de session/MFA en TODO) : il n'a volontairement
 pas été développé plus avant tant qu'il n'a pas été réellement nécessaire
 en pratique, pour éviter de deviner des sélecteurs sur un flow qui ne s'est

@@ -1,4 +1,4 @@
-"""Tests pour app/alin/parser.py.
+"""Tests pour app/sources/alin/parser.py.
 
 Fixture = copie anonymisée d'une réponse réelle de l'endpoint détail AL'in
 (champ "responsible" redacté).
@@ -6,7 +6,7 @@ Fixture = copie anonymisée d'une réponse réelle de l'endpoint détail AL'in
 
 from __future__ import annotations
 
-from app.alin.parser import parse_offer
+from app.sources.alin.parser import parse_offer
 
 RAW_OFFER_DETAIL = {
     "id": "6a7db5d494ec7c5464b03639",
@@ -71,6 +71,7 @@ def test_parse_offer_extracts_expected_fields():
     offer = parse_offer(RAW_OFFER_DETAIL)
 
     assert offer.id == "6a7db5d494ec7c5464b03639"
+    assert offer.source == "alin"
     assert offer.city == "Ivry-sur-Seine"
     assert offer.property_type == "T1"
     assert offer.surface == 32

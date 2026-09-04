@@ -1,13 +1,12 @@
 """Transformation des offres brutes (dicts JSON de l'API AL'in) en objets Offer.
 
-Enveloppe JSON:API confirmée sur l'endpoint détail uniquement (`{"id",
-"type", "attributes"}`) ; l'endpoint liste n'a jamais retourné de données
-réelles lors des tests, donc repli défensif sur un format "plat" si
-`attributes` est absent (cf. README.md).
+Enveloppe JSON:API confirmée sur l'endpoint détail uniquement ; l'endpoint
+liste n'a jamais retourné de données réelles en test, d'où le repli sur un
+format "plat" si `attributes` est absent.
 
-LIMITE CONNUE : le champ `district` contient en réalité une COMMUNE, pas un
-quartier — d'où le mapping `district` -> `Offer.city` et le filtre "quartier"
-best-effort dans app/filters/criteria.py.
+LIMITE CONNUE : `district` contient en réalité une COMMUNE, pas un quartier
+— d'où le mapping vers `Offer.city` et le filtre "quartier" best-effort dans
+app/filters/criteria.py.
 """
 
 from __future__ import annotations
@@ -32,7 +31,7 @@ def _get_attributes(raw: dict) -> dict:
     if not _flat_fallback_warned:
         logger.warning(
             "Élément housing_offers sans enveloppe JSON:API ('attributes' "
-            "absent) : repli sur un format plat, cf. app/alin/parser.py."
+            "absent) : repli sur un format plat, cf. app/sources/alin/parser.py."
         )
         _flat_fallback_warned = True
 
@@ -53,6 +52,7 @@ def parse_offer(raw: dict) -> Offer:
 
     return Offer(
         id=str(offer_id),
+        source="alin",
         url=ALIN_OFFER_URL_TEMPLATE.format(id=offer_id),
         first_seen_at="",  # renseigné par l'appelant (main.py) au moment de l'upsert
         last_seen_at="",  # renseigné par l'appelant (main.py) au moment de l'upsert

@@ -16,14 +16,19 @@ class OfferStatus(str, Enum):
 
 @dataclass
 class Offer:
-    """Offre de logement AL'in. Noms de champs "métier" mappés depuis l'API brute dans app/alin/parser.py."""
+    """Offre de logement, toutes sources confondues.
+
+    `source` + `id` forment la clé composite en base (cf. app/database/db.py) :
+    deux sources différentes peuvent réutiliser le même `id` sans collision.
+    """
 
     id: str
+    source: str  # ex: "alin", "logement_actionlogement" — cf. app/sources/*/
     url: str
     first_seen_at: str
     last_seen_at: str
     title: str
-    city: str  # = district côté API, qui contient en réalité une ville (cf. parser.py)
+    city: str  # limitation connue: mappé depuis district, cf. app/sources/alin/parser.py
     address: str
     property_type: str
     rent: float  # hors charges
@@ -47,3 +52,5 @@ class Offer:
     date_publication_start: str | None = None
     external_ref: str | None = None
     is_active: bool = True  # offer_status actif ET non reserved
+    # Absorbe tout champ propre à une source future sans forcer le schéma commun.
+    raw_attributes: dict | None = None

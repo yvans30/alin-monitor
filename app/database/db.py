@@ -1,7 +1,11 @@
-"""Accès SQLite pour la persistance des offres. Requêtes toujours paramétrées."""
+"""Accès SQLite pour la persistance des offres. Requêtes toujours paramétrées.
+
+Clé composite `(source, id)`, cf. app/database/models.py.
+"""
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 
@@ -9,7 +13,8 @@ from app.database.models import Offer, OfferStatus
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS offers (
-    id TEXT PRIMARY KEY UNIQUE,
+    source TEXT NOT NULL,
+    id TEXT NOT NULL,
     url TEXT NOT NULL,
     first_seen_at TEXT NOT NULL,
     last_seen_at TEXT NOT NULL,
@@ -37,11 +42,14 @@ CREATE TABLE IF NOT EXISTS offers (
     external_ref TEXT,
     is_active INTEGER NOT NULL DEFAULT 1,
     score INTEGER NOT NULL,
-    status TEXT NOT NULL
+    status TEXT NOT NULL,
+    raw_attributes TEXT,
+    PRIMARY KEY (source, id)
 );
 """
 
 _COLUMNS = [
+    "source",
     "id",
     "url",
     "first_seen_at",
@@ -71,9 +79,10 @@ _COLUMNS = [
     "is_active",
     "score",
     "status",
+    "raw_attributes",
 ]
 
-_UPDATE_COLUMNS = [c for c in _COLUMNS if c not in ("id", "first_seen_at")]
+_UPDATE_COLUMNS = [c for c in _COLUMNS if c not in ("source", "id", "first_seen_at")]
 
 
 class Database:
@@ -97,21 +106,22 @@ class Database:
                 f"""
                 INSERT INTO offers ({", ".join(_COLUMNS)})
                 VALUES ({placeholders})
-                ON CONFLICT(id) DO UPDATE SET {set_clause}
+                ON CONFLICT(source, id) DO UPDATE SET {set_clause}
                 """,
                 values,
             )
 
-    def get_offer_by_id(self, offer_id: str) -> Offer | None:
+    def get_offer(self, source: str, offer_id: str) -> Offer | None:
         row = self._conn.execute(
-            "SELECT * FROM offers WHERE id = ?", (offer_id,)
+            "SELECT * FROM offers WHERE source = ? AND id = ?", (source, offer_id)
         ).fetchone()
         return self._row_to_offer(row) if row else None
 
-    def mark_status(self, offer_id: str, status: OfferStatus) -> None:
+    def mark_status(self, source: str, offer_id: str, status: OfferStatus) -> None:
         with self._conn:
             self._conn.execute(
-                "UPDATE offers SET status = ? WHERE id = ?", (status.value, offer_id)
+                "UPDATE offers SET status = ? WHERE source = ? AND id = ?",
+                (status.value, source, offer_id),
             )
 
     def list_by_status(self, status: OfferStatus) -> list[Offer]:
@@ -127,6 +137,8 @@ class Database:
     def _to_row_value(offer: Offer, column: str):
         if column == "status":
             return offer.status.value
+        if column == "raw_attributes":
+            return json.dumps(offer.raw_attributes) if offer.raw_attributes is not None else None
         value = getattr(offer, column)
         if isinstance(value, bool):
             return int(value)
@@ -134,8 +146,10 @@ class Database:
 
     @staticmethod
     def _row_to_offer(row: sqlite3.Row) -> Offer:
+        raw_attributes = row["raw_attributes"]
         return Offer(
             id=row["id"],
+            source=row["source"],
             url=row["url"],
             first_seen_at=row["first_seen_at"],
             last_seen_at=row["last_seen_at"],
@@ -164,4 +178,5 @@ class Database:
             is_active=bool(row["is_active"]),
             score=row["score"],
             status=OfferStatus(row["status"]),
+            raw_attributes=json.loads(raw_attributes) if raw_attributes else None,
         )

@@ -1,13 +1,9 @@
 # Critères de recherche pour alin-monitor.
-# "villes", "types_logement" etc. servent de FILTRES DURS (une offre qui ne
-# correspond pas est écartée, quel que soit son score).
-# La section "scoring" définit la pondération utilisée pour classer les
-# offres qui passent les filtres durs.
+# "villes", "types_logement" etc. = FILTRES DURS (offre non conforme écartée).
+# "scoring" = pondération pour classer les offres qui passent les filtres durs.
 #
-# CONFIGURATION ACTUELLE : aucun filtre. AL'in ne montre déjà que les offres
-# auxquelles le profil (demande de logement social) est éligible — inutile
-# de sur-filtrer par-dessus. score_threshold à 0 : toute nouvelle offre
-# active détectée déclenche une notification, quel que soit son score.
+# CONFIGURATION ACTUELLE : aucun filtre (AL'in ne montre déjà que les offres
+# éligibles au profil) ; score_threshold=0 -> toute nouvelle offre active notifie.
 
 villes: []  # vide = pas de filtre ville
 
@@ -34,3 +30,12 @@ scoring:
     surface_superieure: 15
     disponibilite_interessante: 10
   score_threshold: 0
+
+# Activation par source + overrides partiels (cf. app/config.py).
+# logement_actionlogement reste désactivé : stub NotImplementedError tant
+# qu'aucune découverte réseau n'a eu lieu (cf. app/sources/logement_actionlogement/).
+sources:
+  alin:
+    enabled: true
+  logement_actionlogement:
+    enabled: false

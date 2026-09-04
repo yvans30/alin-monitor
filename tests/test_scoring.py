@@ -33,6 +33,7 @@ def make_criteria(**overrides) -> Criteria:
 def make_offer(**overrides) -> Offer:
     base = dict(
         id="offer-1",
+        source="alin",
         url="https://al-in.fr/#/fiche-logement/offer-1",
         first_seen_at="2026-08-31T10:00:00Z",
         last_seen_at="2026-08-31T10:00:00Z",

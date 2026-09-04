@@ -1,9 +1,8 @@
 """Récupération brute des offres depuis l'API AL'in (httpx).
 
-Endpoint `housing_offers` découvert par observation légitime du trafic
-réseau (cf. app/alin/auth.py). La forme exacte des éléments `data[]` de cet
-endpoint liste n'a jamais été confirmée avec de vraies données — voir le
-parsing défensif dans app/alin/parser.py.
+La forme exacte des éléments `data[]` de l'endpoint liste `housing_offers`
+n'a jamais été confirmée avec de vraies données — voir le parsing défensif
+dans app/sources/alin/parser.py.
 """
 
 from __future__ import annotations

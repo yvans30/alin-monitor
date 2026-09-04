@@ -1,10 +1,8 @@
 """Fallback Playwright pour une intervention manuelle sur AL'in.
 
-Déclenché par app/main.py uniquement après échec répété de l'authentification
-httpx nominale (cf. app/alin/auth.py) : ouvre un navigateur visible pour que
-l'utilisateur termine la connexion lui-même. Mêmes règles éthiques strictes
-qu'ailleurs (jamais de contournement CAPTCHA/MFA, jamais de candidature
-soumise automatiquement) — cf. app/alin/auth.py. Mot de passe jamais loggé.
+Déclenché par app/main.py après échec répété de l'authentification httpx
+nominale (cf. app/sources/alin/auth.py) : ouvre un navigateur visible pour
+que l'utilisateur termine la connexion lui-même. Mot de passe jamais loggé.
 """
 
 from __future__ import annotations
@@ -14,7 +12,14 @@ import json
 import logging
 from pathlib import Path
 
-from playwright.async_api import Browser, BrowserContext, Page, Playwright, async_playwright
+from playwright.async_api import (
+    Browser,
+    BrowserContext,
+    Error as PlaywrightError,
+    Page,
+    Playwright,
+    async_playwright,
+)
 
 from app.config import Settings
 from app.notifications.alerting import ErrorNotifier
@@ -26,8 +31,14 @@ _MFA_POLL_INTERVAL_SECONDS = 5
 _MFA_POLL_TIMEOUT_SECONDS = 15 * 60
 
 
+class ChromiumNotAvailableError(RuntimeError):
+    """Cause la plus fréquente : `playwright install --with-deps chromium`
+    jamais exécuté (VPS nu), ou image Docker de base changée sans
+    réinstaller le navigateur (cf. Dockerfile).
+    """
+
+
 def load_storage_state(path: str | Path) -> dict | None:
-    """Charge un storage_state Playwright sauvegardé, s'il existe."""
     p = Path(path)
     if not p.exists():
         return None
@@ -36,7 +47,6 @@ def load_storage_state(path: str | Path) -> dict | None:
 
 
 async def save_storage_state(context: BrowserContext, path: str | Path) -> None:
-    """Sauvegarde l'état de session courant (cookies, localStorage) sur disque."""
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     await context.storage_state(path=str(p))
@@ -45,10 +55,29 @@ async def save_storage_state(context: BrowserContext, path: str | Path) -> None:
 
 async def create_browser_context(
     settings: Settings,
+    error_notifier: ErrorNotifier | None = None,
 ) -> tuple[Playwright, Browser, BrowserContext]:
-    """Lance Chromium en mode visible (non-headless) pour permettre une intervention manuelle."""
+    """Lance Chromium en mode visible pour permettre une intervention manuelle.
+
+    Lève `ChromiumNotAvailableError` (notifie Telegram si `error_notifier`
+    est fourni) si Chromium n'est pas installé.
+    """
     playwright = await async_playwright().start()
-    browser = await playwright.chromium.launch(headless=False)
+    try:
+        browser = await playwright.chromium.launch(headless=False)
+    except PlaywrightError as exc:
+        await playwright.stop()
+        message = (
+            "Le navigateur Chromium requis par le fallback Playwright est "
+            "indisponible. Corrigez avec `playwright install --with-deps "
+            "chromium` (VPS nu), ou reconstruisez l'image Docker (le "
+            "Dockerfile installe Chromium en filet de sécurité). Détail : "
+            f"{exc}"
+        )
+        logger.error(message)
+        if error_notifier:
+            error_notifier.notify_critical_error("chromium_not_available", message)
+        raise ChromiumNotAvailableError(message) from exc
 
     storage_state = load_storage_state(settings.storage_state_path)
     if storage_state:
@@ -68,7 +97,7 @@ async def close_browser(playwright: Playwright, browser: Browser) -> None:
 
 
 async def _is_logged_in(page: Page) -> bool:
-    """TODO: sélecteur de session active non encore défini."""
+    # TODO: sélecteur de session active non encore défini.
     raise NotImplementedError(
         "Sélecteur de détection de connexion non défini : à faire lors d'une "
         "future intervention manuelle avec l'utilisateur."

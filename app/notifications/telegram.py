@@ -17,6 +17,11 @@ TELEGRAM_API_BASE = "https://api.telegram.org"
 _MAX_RETRIES = 2
 _TIMEOUT_SECONDS = 10.0
 
+SOURCE_LABELS = {
+    "alin": "AL'in",
+    "logement_actionlogement": "Action Logement",
+}
+
 
 class TelegramNotifier:
     def __init__(self, bot_token: str, chat_id: str) -> None:
@@ -63,10 +68,13 @@ class TelegramNotifier:
         rent_with_charges = (
             offer.rent_with_charges if offer.rent_with_charges is not None else offer.rent
         )
+        city = f"{offer.city} ({offer.postal_code})" if offer.postal_code else offer.city
+        source_label = SOURCE_LABELS.get(offer.source, offer.source)
 
         text = (
-            "🚨 *NOUVELLE OFFRE AL'IN*\n\n"
-            f"📍 {offer.city} — {address}\n"
+            "🚨 *NOUVELLE OFFRE*\n\n"
+            f"🌐 Source : {source_label}\n"
+            f"📍 {city} — {address}\n"
             f"🏠 {offer.property_type}\n"
             f"📐 {offer.surface} m²\n"
             f"💰 {rent_with_charges} € CC\n"

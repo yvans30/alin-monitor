@@ -60,12 +60,39 @@ def _load_criteria(path: Path) -> Criteria:
     with path.open("r", encoding="utf-8") as f:
         raw = yaml.safe_load(f) or {}
 
+    raw.pop("sources", None)  # section à part, lue par _load_sources_config
     scoring = raw.pop("scoring", {}) or {}
     raw["poids"] = scoring.get("poids", {})
     if "score_threshold" in scoring:
         raw["score_threshold"] = scoring["score_threshold"]
 
     return Criteria.model_validate(raw)
+
+
+def _load_sources_config(path: Path) -> dict[str, "SourceConfig"]:
+    """Charge la section optionnelle `sources:` de config/criteria.yaml."""
+    with path.open("r", encoding="utf-8") as f:
+        raw = yaml.safe_load(f) or {}
+
+    sources_raw = raw.get("sources") or {}
+    return {name: SourceConfig.model_validate(cfg or {}) for name, cfg in sources_raw.items()}
+
+
+class SourceConfig(BaseModel):
+    """Activation et overrides de critères pour une source (cf. config/criteria.yaml `sources:`)."""
+
+    enabled: bool = True
+    overrides: dict = Field(default_factory=dict)
+
+
+def get_criteria_for_source(
+    base: Criteria, source_name: str, sources_cfg: dict[str, SourceConfig]
+) -> Criteria:
+    """Applique les overrides partiels de la source (si définis) sur les critères communs."""
+    source_cfg = sources_cfg.get(source_name)
+    if source_cfg is None or not source_cfg.overrides:
+        return base
+    return base.model_copy(update=source_cfg.overrides)
 
 
 class Settings(BaseModel):
@@ -76,12 +103,20 @@ class Settings(BaseModel):
     alin_password: SecretStr
     alin_login_url: str
     alin_gexrt_api_key: str = ALIN_GEXRT_API_KEY_DEFAULT
+    # Optionnels : inutilisés tant que le stub logement_actionlogement n'est pas implémenté.
+    logement_actionlogement_email: str | None = None
+    logement_actionlogement_password: SecretStr | None = None
     check_interval_seconds: int = DEFAULT_CHECK_INTERVAL_SECONDS
     db_path: Path
     storage_state_path: Path
     log_level: str = "INFO"
     score_threshold: int = 60
     criteria: Criteria
+    sources: dict[str, SourceConfig] = Field(default_factory=dict)
+    # Fallback Playwright manuel : nécessite un affichage graphique, donc
+    # désactivé sur VPS/Docker (ENABLE_MANUAL_FALLBACK=false), où seule une
+    # alerte Telegram est envoyée en cas d'échec d'authentification répété.
+    enable_manual_fallback: bool = True
 
 
 @lru_cache(maxsize=1)
@@ -93,6 +128,9 @@ def get_settings(
     load_dotenv(env_path)
 
     criteria = _load_criteria(Path(criteria_path))
+    sources_raw = _load_sources_config(Path(criteria_path))
+
+    logement_actionlogement_password = os.environ.get("LOGEMENT_ACTIONLOGEMENT_PASSWORD")
 
     return Settings(
         telegram_bot_token=os.environ["TELEGRAM_BOT_TOKEN"],
@@ -102,6 +140,12 @@ def get_settings(
         alin_login_url=os.environ["ALIN_LOGIN_URL"],
         alin_gexrt_api_key=os.environ.get(
             "ALIN_GEXRT_API_KEY", ALIN_GEXRT_API_KEY_DEFAULT
+        ),
+        logement_actionlogement_email=os.environ.get("LOGEMENT_ACTIONLOGEMENT_EMAIL"),
+        logement_actionlogement_password=(
+            SecretStr(logement_actionlogement_password)
+            if logement_actionlogement_password
+            else None
         ),
         check_interval_seconds=int(
             os.environ.get("CHECK_INTERVAL_SECONDS", DEFAULT_CHECK_INTERVAL_SECONDS)
@@ -113,4 +157,7 @@ def get_settings(
         log_level=os.environ.get("LOG_LEVEL", "INFO"),
         score_threshold=int(os.environ.get("SCORE_THRESHOLD", criteria.score_threshold)),
         criteria=criteria,
+        sources=sources_raw,
+        enable_manual_fallback=os.environ.get("ENABLE_MANUAL_FALLBACK", "true").lower()
+        not in ("false", "0", "no"),
     )

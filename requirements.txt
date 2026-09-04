@@ -1,4 +1,6 @@
 
+# Fallback manuel (local uniquement, cf. README) : `playwright install
+# --with-deps chromium` après ce pip install.
 playwright>=1.45
 python-dotenv>=1.0
 pydantic>=2.7
