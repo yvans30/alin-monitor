@@ -28,5 +28,5 @@ class ErrorNotifier:
         self._last_sent_at[error_type] = now
         logger.error("Erreur critique [%s]: %s", error_type, message)
 
-        text = f"⚠️ *Erreur alin-monitor*\n\nType : {error_type}\n{message}"
+        text = f"⚠️ Erreur alin-monitor\n\nType : {error_type}\n{message}"
         self._notifier.notify_text(text)

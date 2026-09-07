@@ -29,10 +29,12 @@ class TelegramNotifier:
         self._chat_id = chat_id
 
     def _send_message(self, text: str, url_button: str | None = None) -> None:
+        # Pas de parse_mode : le texte contient des champs scrapés/des messages
+        # d'erreur arbitraires, jamais garantis valides en Markdown (ex: un
+        # underscore isolé fait échouer l'entité et renvoie un 400).
         payload: dict = {
             "chat_id": self._chat_id,
             "text": text,
-            "parse_mode": "Markdown",
         }
         if url_button:
             payload["reply_markup"] = {
@@ -72,7 +74,7 @@ class TelegramNotifier:
         source_label = SOURCE_LABELS.get(offer.source, offer.source)
 
         text = (
-            "🚨 *NOUVELLE OFFRE*\n\n"
+            "🚨 NOUVELLE OFFRE\n\n"
             f"🌐 Source : {source_label}\n"
             f"📍 {city} — {address}\n"
             f"🏠 {offer.property_type}\n"

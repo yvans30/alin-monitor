@@ -1,4 +1,4 @@
-"""Tests du harnais multi-source (app/config.py, app/main.py, stub logement_actionlogement)."""
+"""Tests du harnais multi-source (app/config.py, app/main.py)."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ import pytest
 from app.config import Criteria, Poids, SourceConfig, get_criteria_for_source
 from app.main import _is_source_enabled
 from app.sources.logement_actionlogement.auth import LogementActionLogementAuthClient
-from app.sources.logement_actionlogement.parser import parse_offer as parse_logement_offer
 from app.sources.logement_actionlogement.scraper import (
+    LogementActionLogementScraperError,
     fetch_active_offers as fetch_logement_offers,
 )
 
@@ -74,23 +74,22 @@ def test_is_source_enabled_respects_explicit_config():
     assert _is_source_enabled("logement_actionlogement", sources_cfg) is True
 
 
-# --- Garde-fou : le stub logement_actionlogement doit rester explicitement
-# non implémenté (jamais d'endpoint/structure de données inventés). ---
+# --- logement_actionlogement utilise le mode public (sans authentification,
+# cf. CGU art. 11.16) : pas de token à obtenir. ---
 
 
-def test_logement_actionlogement_auth_client_raises_not_implemented():
+def test_logement_actionlogement_auth_client_needs_no_token():
     client = LogementActionLogementAuthClient(settings=None)
-    with pytest.raises(NotImplementedError):
-        asyncio.run(client.authenticate())
-    with pytest.raises(NotImplementedError):
-        asyncio.run(client.ensure_valid_token())
+    assert asyncio.run(client.authenticate()) == ""
+    assert asyncio.run(client.ensure_valid_token()) == ""
 
 
-def test_logement_actionlogement_scraper_raises_not_implemented():
-    with pytest.raises(NotImplementedError):
-        asyncio.run(fetch_logement_offers(client=None, access_token="token", settings=None))
+# --- Garde-fou : la recherche géographique est obligatoire côté API, pas de
+# mode "tout afficher" — un scraper sans municipalité configurée doit échouer
+# explicitement plutôt que d'inventer un comportement par défaut. ---
 
 
-def test_logement_actionlogement_parser_raises_not_implemented():
-    with pytest.raises(NotImplementedError):
-        parse_logement_offer({"id": "whatever"})
+def test_logement_actionlogement_scraper_requires_search_config():
+    settings = type("S", (), {"sources": {}})()
+    with pytest.raises(LogementActionLogementScraperError):
+        asyncio.run(fetch_logement_offers(client=None, access_token="", settings=settings))

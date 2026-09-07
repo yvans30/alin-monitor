@@ -30,6 +30,21 @@ ALIN_TOKEN_REFRESH_MARGIN_SECONDS = 100
 OFFER_STATUS_ACTIVE = "LOGEMENT PUBLIE"
 OFFER_STATUS_PLACED = "LOGEMENT PLACE"
 
+# --- Endpoints API logement-actionlogement.fr --- (mode public sans authentification,
+# cf. CGU art. 11.16 ; découverts par observation réseau légitime en navigation publique).
+LOGEMENT_ACTIONLOGEMENT_OFFERS_OVERVIEW_URL = (
+    "https://api.logement-actionlogement.fr/api/v1/demands/public/offers-overview"
+)
+LOGEMENT_ACTIONLOGEMENT_OFFER_DETAILS_URL = (
+    "https://api.logement-actionlogement.fr/api/v1/demands/public/offer-showcase-details"
+)
+# Confirmée par observation directe (URL relevée dans la barre d'adresse en cliquant
+# une offre) : le segment final est le `guid` de l'offre (même valeur que `offerGuid`
+# passé à offer-showcase-details).
+LOGEMENT_ACTIONLOGEMENT_OFFER_URL_TEMPLATE = (
+    "https://logement-actionlogement.fr/search/detail/{guid}"
+)
+
 
 class Poids(BaseModel):
     ville_correspondante: int = 0
@@ -83,6 +98,10 @@ class SourceConfig(BaseModel):
 
     enabled: bool = True
     overrides: dict = Field(default_factory=dict)
+    # Paramètres de recherche propres à la source (ex: municipalités pour
+    # logement_actionlogement) : ne correspond à aucun champ de Criteria, donc
+    # transmis tel quel au scraper plutôt que fusionné via `overrides`.
+    search: dict = Field(default_factory=dict)
 
 
 def get_criteria_for_source(
@@ -103,9 +122,6 @@ class Settings(BaseModel):
     alin_password: SecretStr
     alin_login_url: str
     alin_gexrt_api_key: str = ALIN_GEXRT_API_KEY_DEFAULT
-    # Optionnels : inutilisés tant que le stub logement_actionlogement n'est pas implémenté.
-    logement_actionlogement_email: str | None = None
-    logement_actionlogement_password: SecretStr | None = None
     check_interval_seconds: int = DEFAULT_CHECK_INTERVAL_SECONDS
     db_path: Path
     storage_state_path: Path
@@ -130,8 +146,6 @@ def get_settings(
     criteria = _load_criteria(Path(criteria_path))
     sources_raw = _load_sources_config(Path(criteria_path))
 
-    logement_actionlogement_password = os.environ.get("LOGEMENT_ACTIONLOGEMENT_PASSWORD")
-
     return Settings(
         telegram_bot_token=os.environ["TELEGRAM_BOT_TOKEN"],
         telegram_chat_id=os.environ["TELEGRAM_CHAT_ID"],
@@ -140,12 +154,6 @@ def get_settings(
         alin_login_url=os.environ["ALIN_LOGIN_URL"],
         alin_gexrt_api_key=os.environ.get(
             "ALIN_GEXRT_API_KEY", ALIN_GEXRT_API_KEY_DEFAULT
-        ),
-        logement_actionlogement_email=os.environ.get("LOGEMENT_ACTIONLOGEMENT_EMAIL"),
-        logement_actionlogement_password=(
-            SecretStr(logement_actionlogement_password)
-            if logement_actionlogement_password
-            else None
         ),
         check_interval_seconds=int(
             os.environ.get("CHECK_INTERVAL_SECONDS", DEFAULT_CHECK_INTERVAL_SECONDS)

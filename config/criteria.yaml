@@ -32,10 +32,16 @@ scoring:
   score_threshold: 0
 
 # Activation par source + overrides partiels (cf. app/config.py).
-# logement_actionlogement reste désactivé : stub NotImplementedError tant
-# qu'aucune découverte réseau n'a eu lieu (cf. app/sources/logement_actionlogement/).
 sources:
   alin:
     enabled: true
   logement_actionlogement:
-    enabled: false
+    enabled: true
+    search:
+      municipalities:
+        - code: "75056"
+          postcode: "75001"
+      searchRadiusInKm: 0
+      maxRent: 800
+      typologyCodes: ["T1", "T2"]
+      productGuids: []

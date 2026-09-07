@@ -70,17 +70,27 @@ parle directement à l'API AL'in en HTTP (via `httpx`, async) :
    `(source, id)` : deux sources peuvent réutiliser le même identifiant
    externe sans collision).
 
-### `app/sources/logement_actionlogement/` — stub, non implémenté
+### `app/sources/logement_actionlogement/` — second site Action Logement
 
-Un second site du groupe Action Logement
-(`logement-actionlogement.fr`) est prévu dans le même outil (même bot
-Telegram, même base SQLite), mais sa structure technique réelle (auth,
-format des offres, URL de fiche) **n'est pas connue**. Comme fait pour AL'in
-à l'origine, elle doit être découverte par observation légitime du trafic
-réseau de l'utilisateur sur son propre compte — jamais par invention
-d'endpoint. En attendant cette découverte, `app/sources/logement_actionlogement/`
-reste un stub : chaque fonction lève `NotImplementedError`, et la source
-reste `enabled: false` dans `config/criteria.yaml`.
+Surveille `logement-actionlogement.fr` en **mode public sans
+authentification** (autorisé par ses CGU, art. 11.16) : pas de compte, pas
+de token, `app/sources/logement_actionlogement/auth.py` est un simple
+passe-plat pour respecter le `Protocol SourceClient`.
+
+1. `app/sources/logement_actionlogement/scraper.py` (`fetch_active_offers`)
+   interroge `POST /api/v1/demands/public/offers-overview`, paginé. La
+   recherche est géographique et **obligatoire** côté API (pas de mode
+   "tout afficher" nationwide) : municipalité(s), rayon (km), loyer max,
+   typologies — ces paramètres viennent de `config/criteria.yaml`
+   (`sources.logement_actionlogement.search`), pas de `Criteria` (aucun
+   champ commun ne correspond à un code INSEE ou un rayon).
+2. `app/sources/logement_actionlogement/parser.py` (`parse_offer`)
+   transforme chaque élément résumé en objet `Offer`. Seuls les champs
+   exposés par le résumé liste sont peuplés (pas d'appel détail par offre,
+   pour éviter les requêtes N+1) : `floor`/`has_elevator`/`parking_type`/
+   `balconies` restent `None`.
+3. URL de fiche individuelle confirmée par observation directe :
+   `https://logement-actionlogement.fr/search/detail/<guid>`.
 
 **Checklist pour ajouter/activer une nouvelle source** :
 

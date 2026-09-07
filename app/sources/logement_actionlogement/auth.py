@@ -1,11 +1,9 @@
-"""Stub d'authentification pour logement-actionlogement.fr.
+"""Authentification pour logement-actionlogement.fr.
 
-**Non implémenté volontairement** : contrairement à AL'in (cf.
-app/sources/alin/auth.py), les endpoints réels n'ont jamais été observés en
-trafic réseau légitime — les inventer est interdit par ce projet (cf.
-app/sources/base.py). Avant d'implémenter : vérifier les CGU, observer le
-flow réel via l'onglet Network de l'utilisateur sur son propre compte, puis
-documenter les endpoints ici sur le modèle d'app/sources/alin/auth.py.
+Aucune authentification requise : la surveillance utilise le mode de
+navigation publique du site (CGU art. 11.16), qui expose les offres sans
+compte. Cette classe existe uniquement pour respecter le Protocol
+`SourceClient` (cf. app/sources/base.py).
 """
 
 from __future__ import annotations
@@ -14,30 +12,20 @@ from app.config import Settings
 
 
 class LogementActionLogementAuthenticationError(RuntimeError):
-    """Réservé à la future implémentation réelle, sur le modèle d'AlinAuthenticationError."""
+    """Réservée à une future bascule vers un mode authentifié, si jamais nécessaire."""
 
 
 class LogementActionLogementAuthClient:
-    """Squelette non fonctionnel : tout appel lève NotImplementedError."""
-
     name = "logement_actionlogement"
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
     async def authenticate(self) -> str:
-        raise NotImplementedError(
-            "Authentification logement-actionlogement.fr non implémentée : "
-            "endpoints non identifiés, nécessite une session de découverte "
-            "réseau légitime avant implémentation, cf. README.md."
-        )
+        return ""
 
     async def ensure_valid_token(self) -> str:
-        raise NotImplementedError(
-            "Authentification logement-actionlogement.fr non implémentée : "
-            "endpoints non identifiés, nécessite une session de découverte "
-            "réseau légitime avant implémentation, cf. README.md."
-        )
+        return ""
 
     async def aclose(self) -> None:
         return None
