@@ -45,6 +45,11 @@ LOGEMENT_ACTIONLOGEMENT_OFFER_URL_TEMPLATE = (
     "https://logement-actionlogement.fr/search/detail/{guid}"
 )
 
+# --- LOC'annonces (Ville de Paris) --- (mode public sans authentification, page
+# HTML classique — pas d'API JSON, cf. app/sources/paris_locannonces/scraper.py).
+PARIS_LOCANNONCES_BASE_URL = "https://teleservices.paris.fr/locannonces/"
+PARIS_LOCANNONCES_OFFER_URL_TEMPLATE = "https://teleservices.paris.fr/locannonces/logement/{id}"
+
 
 class Poids(BaseModel):
     ville_correspondante: int = 0

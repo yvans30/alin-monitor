@@ -20,6 +20,7 @@ _TIMEOUT_SECONDS = 10.0
 SOURCE_LABELS = {
     "alin": "AL'in",
     "logement_actionlogement": "Action Logement",
+    "paris_locannonces": "LOC'annonces (Ville de Paris)",
 }
 
 

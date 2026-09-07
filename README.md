@@ -92,6 +92,28 @@ passe-plat pour respecter le `Protocol SourceClient`.
 3. URL de fiche individuelle confirmée par observation directe :
    `https://logement-actionlogement.fr/search/detail/<guid>`.
 
+### `app/sources/paris_locannonces/` — LOC'annonces (Ville de Paris)
+
+Troisième source, également en mode public sans authentification (la page
+liste se rend en clair même après échec d'une tentative de connexion OAuth
+silencieuse — testé sans aucune session préalable). Contrairement aux deux
+autres sources, **pas d'API JSON** : LOC'annonces rend une page HTML
+classique (JSP), donc le scraper fait du parsing HTML (BeautifulSoup) plutôt
+que du JSON.
+
+1. `app/sources/paris_locannonces/scraper.py` (`fetch_active_offers`)
+   récupère `GET https://teleservices.paris.fr/locannonces/` avec les
+   paramètres de recherche (`cp`, `nbp`, `smin`/`smax`, `lmin`/`lmax`) définis
+   dans `config/criteria.yaml` (`sources.paris_locannonces.search`), et
+   extrait chaque tuile d'offre du HTML retourné. Aucune pagination
+   observée, y compris avec une douzaine de résultats sur une seule page.
+2. `app/sources/paris_locannonces/parser.py` (`parse_offer`) transforme
+   chaque tuile en `Offer`. Pas de typologie (T1/T2...) exposée sur la page
+   liste, seulement un nombre de pièces : `property_type` reste donc le
+   libellé brut ("2 pièces"). La "date limite de candidature" est mappée sur
+   `publication_end_date` (l'équivalent sémantique le plus proche parmi les
+   champs communs), pas sur `availability_date`.
+
 **Checklist pour ajouter/activer une nouvelle source** :
 
 1. Lire les CGU du site (veille automatisée acceptable ou non, comme fait

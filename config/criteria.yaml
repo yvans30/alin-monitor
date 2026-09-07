@@ -45,3 +45,13 @@ sources:
       maxRent: 800
       typologyCodes: ["T1", "T2"]
       productGuids: []
+  paris_locannonces:
+    enabled: true
+    # cp = code postal ou département ("93", "75018"...), vide = pas de filtre.
+    search:
+      cp: ""
+      nbp: ""
+      smin: 0
+      smax: 200
+      lmin: 0
+      lmax: 1000

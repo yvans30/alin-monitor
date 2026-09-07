@@ -33,6 +33,11 @@ from app.sources.logement_actionlogement.parser import (
 from app.sources.logement_actionlogement.scraper import (
     fetch_active_offers as fetch_logement_actionlogement_offers,
 )
+from app.sources.paris_locannonces.auth import ParisLocannoncesAuthClient
+from app.sources.paris_locannonces.parser import parse_offer as parse_paris_locannonces_offer
+from app.sources.paris_locannonces.scraper import (
+    fetch_active_offers as fetch_paris_locannonces_offers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +74,15 @@ def build_sources(settings, http_client: httpx.AsyncClient) -> list[Source]:
         ),
     )
 
-    all_sources = [alin_source, logement_actionlogement_source]
+    paris_locannonces_source = Source(
+        name="paris_locannonces",
+        auth_client=ParisLocannoncesAuthClient(settings),
+        fetch_active_offers=functools.partial(fetch_paris_locannonces_offers, settings=settings),
+        parse_offer=parse_paris_locannonces_offer,
+        criteria=get_criteria_for_source(settings.criteria, "paris_locannonces", settings.sources),
+    )
+
+    all_sources = [alin_source, logement_actionlogement_source, paris_locannonces_source]
     return [s for s in all_sources if _is_source_enabled(s.name, settings.sources)]
 
 
