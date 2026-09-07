@@ -2,8 +2,16 @@
 # "villes", "types_logement" etc. = FILTRES DURS (offre non conforme écartée).
 # "scoring" = pondération pour classer les offres qui passent les filtres durs.
 #
-# CONFIGURATION ACTUELLE : aucun filtre (AL'in ne montre déjà que les offres
-# éligibles au profil) ; score_threshold=0 -> toute nouvelle offre active notifie.
+# CONFIGURATION ACTUELLE (source "alin") : aucun filtre, AL'in ne montre déjà
+# que les offres éligibles au profil ; score_threshold=0 -> toute nouvelle
+# offre active notifie. Les 3 autres sources (recherche publique générique,
+# pas scopée à un profil) ont leurs propres filtres dans `sources:` plus bas.
+
+# Ancre réutilisée par plusieurs sources dans `sources:` (clés différentes
+# selon l'API de chaque site : maxRent/lmax/budget) pour garder un seul
+# loyer plafond à modifier, cf. app/config.py (`_load_criteria` l'ignore ici).
+_profil:
+  loyer_max: &profil_loyer_max 800
 
 villes: []  # vide = pas de filtre ville
 
@@ -31,7 +39,12 @@ scoring:
     disponibilite_interessante: 10
   score_threshold: 0
 
-# Activation par source + overrides partiels (cf. app/config.py).
+# Activation par source. `search` = paramètres envoyés à l'API/la page de
+# recherche du site (pré-filtre côté serveur). `overrides` = filtres durs
+# post-fetch (cf. app/filters/criteria.py), appliqués en plus par sécurité :
+# AL'in n'en a pas besoin (déjà scopé à un profil), les 3 autres sources font
+# de la recherche publique générique, donc on impose aussi le plafond de
+# loyer commun ici, au cas où le pré-filtre de l'API se comporterait mal.
 sources:
   alin:
     enabled: true
@@ -39,19 +52,34 @@ sources:
     enabled: true
     search:
       municipalities:
-        - code: "75056"
+        - code: "75056"  # Paris (code commune INSEE), déjà limité à la ville entière
           postcode: "75001"
-      searchRadiusInKm: 0
-      maxRent: 800
+      searchRadiusInKm: 0  # volontaire : pas de logement hors Paris
+      maxRent: *profil_loyer_max
       typologyCodes: ["T1", "T2"]
       productGuids: []
+    overrides:
+      loyer_max: *profil_loyer_max
   paris_locannonces:
     enabled: true
-    # cp = code postal ou département ("93", "75018"...), vide = pas de filtre.
+    # cp = code postal ou département ("93", "75018"...) ; laissé vide car
+    # LOC'annonces est déjà un service propre à la Ville de Paris (pas de
+    # résultats hors Paris à filtrer).
     search:
       cp: ""
       nbp: ""
       smin: 0
       smax: 200
       lmin: 0
-      lmax: 1000
+      lmax: *profil_loyer_max
+    overrides:
+      loyer_max: *profil_loyer_max
+  espacil:
+    enabled: true
+    search:
+      profile: "young"
+      department: ["75"]
+      city: ["Paris"]
+      budget: *profil_loyer_max
+    overrides:
+      loyer_max: *profil_loyer_max

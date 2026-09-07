@@ -26,6 +26,9 @@ from app.sources.alin.parser import parse_offer as parse_alin_offer
 from app.sources.alin.scraper import AlinScraperError
 from app.sources.alin.scraper import fetch_active_offers as fetch_alin_offers
 from app.sources.base import Source
+from app.sources.espacil.auth import EspacilAuthClient
+from app.sources.espacil.parser import parse_offer as parse_espacil_offer
+from app.sources.espacil.scraper import fetch_active_offers as fetch_espacil_offers
 from app.sources.logement_actionlogement.auth import LogementActionLogementAuthClient
 from app.sources.logement_actionlogement.parser import (
     parse_offer as parse_logement_actionlogement_offer,
@@ -82,7 +85,20 @@ def build_sources(settings, http_client: httpx.AsyncClient) -> list[Source]:
         criteria=get_criteria_for_source(settings.criteria, "paris_locannonces", settings.sources),
     )
 
-    all_sources = [alin_source, logement_actionlogement_source, paris_locannonces_source]
+    espacil_source = Source(
+        name="espacil",
+        auth_client=EspacilAuthClient(settings),
+        fetch_active_offers=functools.partial(fetch_espacil_offers, settings=settings),
+        parse_offer=parse_espacil_offer,
+        criteria=get_criteria_for_source(settings.criteria, "espacil", settings.sources),
+    )
+
+    all_sources = [
+        alin_source,
+        logement_actionlogement_source,
+        paris_locannonces_source,
+        espacil_source,
+    ]
     return [s for s in all_sources if _is_source_enabled(s.name, settings.sources)]
 
 

@@ -1,0 +1,43 @@
+info:
+  name: 01-Recherche
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://teleservices.paris.fr/locannonces/?cp=&nbp=&smin=0&smax=200&lmin=0&lmax=800
+  params:
+    - name: cp
+      value: ""
+      type: query
+    - name: nbp
+      value: ""
+      type: query
+    - name: smin
+      value: "0"
+      type: query
+    - name: smax
+      value: "200"
+      type: query
+    - name: lmin
+      value: "0"
+      type: query
+    - name: lmax
+      value: "800"
+      type: query
+  headers:
+    - name: Accept
+      value: text/html
+      type: text
+  auth:
+    type: none
+
+settings:
+  # Le serveur redirige via une tentative de connexion OAuth silencieuse
+  # (prompt=none) qui échoue (login_required), puis retombe sur la page de
+  # résultats en clair — nécessite followRedirects: true, sinon on reste
+  # bloqué sur un 302.
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

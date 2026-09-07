@@ -1,0 +1,38 @@
+info:
+  name: 01-VotreRecherche
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://www.espacil.com/votre-recherche?txsc%5Bprofile%5D=young&txsc%5Bdepartment%5D%5B%5D=75&txsc%5Bcity%5D%5B%5D=Paris&txsc%5Bbudget%5D=800&txsc%5Bcontext%5D=location
+  params:
+    - name: txsc[profile]
+      value: young
+      type: query
+    - name: txsc[department][]
+      value: "75"
+      type: query
+    - name: txsc[city][]
+      value: Paris
+      type: query
+    - name: txsc[budget]
+      value: "800"
+      type: query
+    - name: txsc[context]
+      value: location
+      type: query
+  headers:
+    - name: Accept
+      value: text/html
+      type: text
+  auth:
+    type: none
+
+settings:
+  # Pas d'API JSON : les résultats sont dans le bloc <script> window.locationsList
+  # (GeoJSON) de la page retournée, cf. app/sources/espacil/scraper.py.
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

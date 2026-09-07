@@ -1,0 +1,33 @@
+info:
+  name: 01-Login
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: https://api.be-ys.com/als-back/v1/accounts/authenticate
+  body:
+    mode: json
+    json: |-
+      {
+        "login": "VOTRE_EMAIL_ALIN",
+        "password": "VOTRE_MOT_DE_PASSE_ALIN"
+      }
+  headers:
+    - name: accept
+      value: application/json
+      type: text
+    - name: content-type
+      value: application/json
+      type: text
+    - name: x-gexrt-api-key
+      value: 7d6bfa55-4632-41ed-bddd-597866ebbfb5
+      type: text
+  auth:
+    type: none
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

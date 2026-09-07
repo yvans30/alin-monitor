@@ -114,6 +114,27 @@ que du JSON.
    `publication_end_date` (l'équivalent sémantique le plus proche parmi les
    champs communs), pas sur `availability_date`.
 
+### `app/sources/espacil/` — Espacil
+
+Quatrième source, mode public sans authentification, page HTML classique
+elle aussi. Contrairement à LOC'annonces, pas de scraping DOM : la page
+embarque un bloc `window.locationsList` (GeoJSON pour la carte) qui reprend
+les mêmes champs de façon plus structurée. Ce n'est pas du JSON strict
+(tableau `tags` en quotes simples JS), d'où une extraction champ par champ
+par regex plutôt qu'un `json.loads` direct (cf.
+`app/sources/espacil/scraper.py`).
+
+**Granularité résidence, pas logement individuel** : chaque résultat est un
+bâtiment ("Résidence Beccaria") avec un prix "à partir de" et la liste des
+typologies disponibles ("T1, T1 bis"), pas une offre précise avec loyer/
+surface exacts — limite structurelle du site, pas un choix d'implémentation.
+
+Chaque résidence est ensuite enrichie via sa page détail (adresse réelle,
+nombre d'appartements, détail des typologies avec fourchette de surface) —
+`surface` reprend la surface minimale de la typologie dont le prix correspond
+au "à partir de" du résumé. Un échec sur une page détail dégrade juste cette
+résidence (champs enrichis absents) plutôt que de faire échouer tout le cycle.
+
 **Checklist pour ajouter/activer une nouvelle source** :
 
 1. Lire les CGU du site (veille automatisée acceptable ou non, comme fait

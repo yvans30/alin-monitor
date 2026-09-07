@@ -1,0 +1,39 @@
+info:
+  name: 01-OffersOverview
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: https://api.logement-actionlogement.fr/api/v1/demands/public/offers-overview?size=20&page=0
+  params:
+    - name: size
+      value: "20"
+      type: query
+    - name: page
+      value: "0"
+      type: query
+  body:
+    mode: json
+    json: |-
+      {
+        "municipalities": [
+          { "code": "75056", "postcode": "75001" }
+        ],
+        "searchRadiusInKm": 0,
+        "maxRent": 800,
+        "typologyCodes": ["T1", "T2"],
+        "productGuids": []
+      }
+  headers:
+    - name: accept
+      value: application/json
+      type: text
+  auth:
+    type: none
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

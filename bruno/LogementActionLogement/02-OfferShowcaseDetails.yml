@@ -1,0 +1,26 @@
+info:
+  name: 02-OfferShowcaseDetails
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: https://api.logement-actionlogement.fr/api/v1/demands/public/offer-showcase-details
+  body:
+    mode: json
+    json: |-
+      {
+        "offerGuid": "COLLER_ICI_UN_guid_DE_01-OffersOverview"
+      }
+  headers:
+    - name: accept
+      value: application/json
+      type: text
+  auth:
+    type: none
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

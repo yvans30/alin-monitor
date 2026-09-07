@@ -1,0 +1,29 @@
+info:
+  name: 02-TokenExchange
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: https://api.al-in.fr/api/token_exchange/als_hermes_salarie
+  body:
+    mode: json
+    json: |-
+      {
+        "access_token": "COLLER_ICI_LE_access_token_DE_01-Login"
+      }
+  headers:
+    - name: accept
+      value: application/json
+      type: text
+    - name: content-type
+      value: application/json
+      type: text
+  auth:
+    type: none
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

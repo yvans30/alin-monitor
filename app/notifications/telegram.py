@@ -21,6 +21,7 @@ SOURCE_LABELS = {
     "alin": "AL'in",
     "logement_actionlogement": "Action Logement",
     "paris_locannonces": "LOC'annonces (Ville de Paris)",
+    "espacil": "Espacil",
 }
 
 

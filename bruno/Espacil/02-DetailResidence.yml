@@ -1,0 +1,23 @@
+info:
+  name: 02-DetailResidence
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: https://www.espacil.com/louer/residence/residence-etudiante-jeune-actif-beccaria-paris
+  headers:
+    - name: Accept
+      value: text/html
+      type: text
+  auth:
+    type: none
+
+settings:
+  # Page détail d'une résidence trouvée via 01-VotreRecherche (champ "url" du
+  # bloc window.locationsList) : adresse, nombre d'appartements, et détail des
+  # typologies (section "Mensualités"), cf. app/sources/espacil/scraper.py.
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

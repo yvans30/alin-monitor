@@ -50,6 +50,11 @@ LOGEMENT_ACTIONLOGEMENT_OFFER_URL_TEMPLATE = (
 PARIS_LOCANNONCES_BASE_URL = "https://teleservices.paris.fr/locannonces/"
 PARIS_LOCANNONCES_OFFER_URL_TEMPLATE = "https://teleservices.paris.fr/locannonces/logement/{id}"
 
+# --- Espacil --- (mode public sans authentification, page HTML classique — pas
+# d'API JSON, cf. app/sources/espacil/scraper.py).
+ESPACIL_SEARCH_URL = "https://www.espacil.com/votre-recherche"
+ESPACIL_OFFER_URL_TEMPLATE = "https://www.espacil.com{path}"
+
 
 class Poids(BaseModel):
     ville_correspondante: int = 0
@@ -81,6 +86,7 @@ def _load_criteria(path: Path) -> Criteria:
         raw = yaml.safe_load(f) or {}
 
     raw.pop("sources", None)  # section à part, lue par _load_sources_config
+    raw.pop("_profil", None)  # ancres YAML réutilisées dans `sources`, pas un critère
     scoring = raw.pop("scoring", {}) or {}
     raw["poids"] = scoring.get("poids", {})
     if "score_threshold" in scoring:
