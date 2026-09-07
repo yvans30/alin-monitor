@@ -41,6 +41,8 @@ class AlinAuthClient:
     expiration, avec une marge.
     """
 
+    name = "alin"
+
     def __init__(self, settings: Settings, client: httpx.AsyncClient | None = None) -> None:
         self._settings = settings
         self._client = client or httpx.AsyncClient(timeout=_TIMEOUT_SECONDS)

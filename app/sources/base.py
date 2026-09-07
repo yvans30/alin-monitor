@@ -12,18 +12,48 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Protocol
 
-from app.config import Criteria
+from app.config import Criteria, Settings
 from app.database.models import Offer
 
 
 class SourceClient(Protocol):
-    """Interface minimale qu'un client d'authentification de source doit respecter."""
+    """Interface minimale qu'un client d'authentification de source doit respecter.
+
+    Reflète ce que `app/main.py` appelle réellement sur `Source.auth_client` :
+    `ensure_valid_token()` (avant chaque cycle) et `aclose()` (à l'arrêt).
+    `authenticate()` reste une méthode interne propre à chaque implémentation
+    (ex: AlinAuthClient), pas un point d'entrée partagé — volontairement hors
+    Protocol. `fetch_active_offers` n'est jamais une méthode d'auth client :
+    c'est une fonction libre par source, cf. `Source.fetch_active_offers`.
+    """
 
     name: str
 
-    async def authenticate(self) -> str: ...
+    async def ensure_valid_token(self) -> str: ...
 
-    async def fetch_active_offers(self, access_token: str) -> list[dict[str, Any]]: ...
+    async def aclose(self) -> None: ...
+
+
+class NoAuthClient:
+    """Client d'authentification no-op, pour une source en mode public
+    (confirmé par observation réseau, cf. app/sources/<source>/auth.py) : rien
+    à authentifier, pas de token, pas d'état à fermer. Factorise les 3 sources
+    sans compte (logement_actionlogement, paris_locannonces, espacil) plutôt
+    que de dupliquer les mêmes méthodes vides dans chacune.
+    """
+
+    def __init__(self, settings: Settings, *, name: str) -> None:
+        self._settings = settings
+        self.name = name
+
+    async def authenticate(self) -> str:
+        return ""
+
+    async def ensure_valid_token(self) -> str:
+        return ""
+
+    async def aclose(self) -> None:
+        return None
 
 
 @dataclass
